@@ -86,6 +86,15 @@ class ElectroSCoordinator(DataUpdateCoordinator[dict]):
                 await self.async_request_refresh()
         return success
 
+    async def async_reset_energy(self) -> bool:
+        """Reset the charger's consumed-energy counter and refresh."""
+        _LOGGER.info("Resetting energy counter")
+        success = await self.api.reset_energy()
+        if success:
+            await asyncio.sleep(COMMAND_SETTLE_DELAY)
+            await self.async_request_refresh()
+        return success
+
     async def async_set_amps(self, amps: int) -> bool:
         """Set target amperage.
 

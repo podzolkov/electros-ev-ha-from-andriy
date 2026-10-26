@@ -20,7 +20,12 @@ from .coordinator import ElectroSCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH, Platform.NUMBER]
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.SWITCH,
+    Platform.NUMBER,
+    Platform.BUTTON,
+]
 
 type ElectroSConfigEntry = ConfigEntry[ElectroSCoordinator]
 

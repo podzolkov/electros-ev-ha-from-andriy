@@ -11,6 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
+    UnitOfEnergy,
     UnitOfPower,
 )
 from homeassistant.core import HomeAssistant
@@ -36,6 +37,7 @@ async def async_setup_entry(
         ElectroSMeasuredCurrentSensor(coordinator, entry, login),
         ElectroSVoltageSensor(coordinator, entry, login),
         ElectroSPowerSensor(coordinator, entry, login),
+        ElectroSEnergySensor(coordinator, entry, login),
     ]
     async_add_entities(entities)
 
@@ -179,3 +181,25 @@ class ElectroSPowerSensor(ElectroSBaseSensor):
         if self.coordinator.data is None:
             return None
         return self.coordinator.data.get("charging_power_w")
+
+
+class ElectroSEnergySensor(ElectroSBaseSensor):
+    """Sensor for consumed energy (resettable counter, usable in the Energy dashboard)."""
+
+    _attr_name = "Спожита енергія"
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_icon = "mdi:counter"
+
+    def __init__(self, coordinator, entry, login) -> None:
+        """Initialize."""
+        super().__init__(coordinator, entry, login)
+        self._attr_unique_id = f"{login}_energy"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return consumed energy."""
+        if self.coordinator.data is None:
+            return None
+        return self.coordinator.data.get("energy_kwh")
