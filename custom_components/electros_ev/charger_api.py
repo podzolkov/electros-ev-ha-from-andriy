@@ -18,6 +18,7 @@ from .const import (
     DEFAULT_WS_ORIGIN,
     DEFAULT_WS_PATH,
     DEFAULT_WS_PROTOCOL,
+    OFFLINE_STATUS_CODES,
     STATUS_TEXT_EN,
     SUPPORTED_AMPS,
 )
@@ -52,7 +53,7 @@ def parse_charger_state(message: str) -> dict:
     if measured_current is not None and mains_voltage is not None:
         charging_power_w = round(measured_current * mains_voltage, 1)
     return {
-        "online": status_code != "7",
+        "online": status_code not in OFFLINE_STATUS_CODES,
         "status_code": status_code,
         "status_text": STATUS_TEXT_EN.get(status_code, "unknown"),
         "current_amps": current_amps,

@@ -47,6 +47,8 @@ STATUS_TEXT = {
     "6": "Помилка зв'язку",
     "7": "Офлайн",
     "16": "Витік струму",
+    "32": "Струм перевищив 40 А",
+    "77": "Офлайн",
 }
 
 STATUS_TEXT_EN = {
@@ -59,4 +61,8 @@ STATUS_TEXT_EN = {
     "6": "charger_communication_fault",
     "7": "offline",
     "16": "leakage_current_fault",
+    "32": "overcurrent_fault",
+    "77": "offline",
 }
+
+OFFLINE_STATUS_CODES = {"7", "77"}
