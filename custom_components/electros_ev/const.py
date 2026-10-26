@@ -5,6 +5,9 @@ DEFAULT_SCAN_INTERVAL = 60
 
 CONF_CHARGER_LOGIN = "charger_login"
 CONF_CHARGER_PASSWORD = "charger_password"
+CONF_HOST = "host"  # optional: charger IP/hostname for local (no-cloud) connection
+DEFAULT_LOCAL_PORT = 80
+DEFAULT_LOCAL_WS_PATH = "/ws"
 CONF_WS_HOST = "ws_host"
 CONF_WS_PATH = "ws_path"
 CONF_WS_ORIGIN = "ws_origin"

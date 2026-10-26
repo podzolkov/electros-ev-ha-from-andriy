@@ -12,6 +12,7 @@ from .charger_api import ElectroSApi
 from .const import (
     CONF_CHARGER_LOGIN,
     CONF_CHARGER_PASSWORD,
+    CONF_HOST,
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -30,8 +31,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ElectroSConfigEntry) -> 
     login = entry.data[CONF_CHARGER_LOGIN]
     password = entry.data[CONF_CHARGER_PASSWORD]
     scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    host = entry.data.get(CONF_HOST) or None
 
-    api = ElectroSApi(login=login, password=password)
+    api = ElectroSApi(login=login, password=password, host=host)
     coordinator = ElectroSCoordinator(hass, api, scan_interval)
 
     await coordinator.async_config_entry_first_refresh()

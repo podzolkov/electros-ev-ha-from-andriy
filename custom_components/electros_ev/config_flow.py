@@ -14,6 +14,7 @@ from .charger_api import ElectroSApi
 from .const import (
     CONF_CHARGER_LOGIN,
     CONF_CHARGER_PASSWORD,
+    CONF_HOST,
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -25,6 +26,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_CHARGER_LOGIN): str,
         vol.Required(CONF_CHARGER_PASSWORD): str,
+        vol.Optional(CONF_HOST): str,
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
             int, vol.Range(min=30, max=600)
         ),
@@ -50,7 +52,11 @@ class ElectroSConfigFlow(ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(login)
             self._abort_if_unique_id_configured()
 
-            api = ElectroSApi(login=login, password=password)
+            api = ElectroSApi(
+                login=login,
+                password=password,
+                host=user_input.get(CONF_HOST) or None,
+            )
             try:
                 if await api.test_connection():
                     return self.async_create_entry(

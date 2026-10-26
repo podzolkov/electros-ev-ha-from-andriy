@@ -3,10 +3,11 @@
     "step": {
       "user": {
         "title": "ElectroS EV Charger",
-        "description": "Enter your ElectroS charger credentials",
+        "description": "Enter your ElectroS charger credentials. Set a local host to connect directly on your network (no cloud).",
         "data": {
           "charger_login": "Login (device name)",
           "charger_password": "Password",
+          "host": "Local IP/host (optional — leave blank for cloud)",
           "scan_interval": "Update interval (seconds)"
         }
       }

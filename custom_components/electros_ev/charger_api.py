@@ -14,6 +14,8 @@ import aiohttp
 from .const import (
     AMP_TO_INDEX,
     DEFAULT_BASE_URL,
+    DEFAULT_LOCAL_PORT,
+    DEFAULT_LOCAL_WS_PATH,
     DEFAULT_WS_HOST,
     DEFAULT_WS_ORIGIN,
     DEFAULT_WS_PATH,
@@ -69,21 +71,32 @@ class ElectroSApi:
         self,
         login: str,
         password: str,
+        host: str | None = None,
         base_url: str = DEFAULT_BASE_URL,
         ws_host: str = DEFAULT_WS_HOST,
         ws_path: str = DEFAULT_WS_PATH,
         ws_origin: str = DEFAULT_WS_ORIGIN,
         ws_protocol: str = DEFAULT_WS_PROTOCOL,
     ) -> None:
-        """Initialize the API client."""
+        """Initialize the API client.
+
+        If ``host`` is set, connect directly to the charger on the LAN
+        (ws://host/ws, no cloud login, no TLS); otherwise go through the cloud.
+        """
         self._login = login
         self._password = password
+        self._host = host
         self._base_url = base_url
         self._ws_host = ws_host
         self._ws_path = ws_path
         self._ws_origin = ws_origin
         self._ws_protocol = ws_protocol
         self._cookies: dict[str, str] | None = None
+
+    @property
+    def _local(self) -> bool:
+        """True when configured for a direct local-network connection."""
+        return bool(self._host)
 
     async def _login_session(self) -> dict[str, str]:
         """Login and return session cookies."""
@@ -105,35 +118,45 @@ class ElectroSApi:
 
     async def _ws_communicate(self, message: str) -> str | None:
         """Open WebSocket, send message, receive response."""
-        if not self._cookies:
-            await self._login_session()
-
-        cookie_header = "; ".join(
-            f"{name}={value}" for name, value in self._cookies.items()
-        )
         key = base64.b64encode(os.urandom(16)).decode()
 
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
+        if self._local:
+            # Direct LAN connection: plain ws://host/ws, no login, no TLS.
+            host, port, path, ssl_context = (
+                self._host,
+                DEFAULT_LOCAL_PORT,
+                DEFAULT_LOCAL_WS_PATH,
+                None,
+            )
+            extra_headers = ""
+        else:
+            if not self._cookies:
+                await self._login_session()
+            cookie_header = "; ".join(
+                f"{name}={value}" for name, value in self._cookies.items()
+            )
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            host, port, path = self._ws_host, 443, self._ws_path
+            extra_headers = (
+                f"Origin: {self._ws_origin}\r\n" f"Cookie: {cookie_header}\r\n"
+            )
 
         reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(
-                self._ws_host, 443, ssl=ssl_context
-            ),
+            asyncio.open_connection(host, port, ssl=ssl_context),
             timeout=10,
         )
 
         request = (
-            f"GET {self._ws_path} HTTP/1.1\r\n"
-            f"Host: {self._ws_host}\r\n"
+            f"GET {path} HTTP/1.1\r\n"
+            f"Host: {host}\r\n"
             "Upgrade: websocket\r\n"
             "Connection: Upgrade\r\n"
             f"Sec-WebSocket-Key: {key}\r\n"
             "Sec-WebSocket-Version: 13\r\n"
             f"Sec-WebSocket-Protocol: {self._ws_protocol}\r\n"
-            f"Origin: {self._ws_origin}\r\n"
-            f"Cookie: {cookie_header}\r\n"
+            f"{extra_headers}"
             "\r\n"
         )
         writer.write(request.encode("utf-8"))
@@ -201,8 +224,9 @@ class ElectroSApi:
     async def get_state(self) -> dict:
         """Get charger state."""
         try:
-            self._cookies = None
-            await self._login_session()
+            if not self._local:
+                self._cookies = None
+                await self._login_session()
             response = await self._ws_communicate(f"site {self._login}")
             if response is None:
                 return self._offline_state("invalid_response")
@@ -217,8 +241,9 @@ class ElectroSApi:
         if amps <= 0:
             return await self.stop_charging()
         try:
-            self._cookies = None
-            await self._login_session()
+            if not self._local:
+                self._cookies = None
+                await self._login_session()
             index = AMP_TO_INDEX[amps]
             await self._ws_communicate(
                 f"site {self._login}\nstart\n{index}\n0\n"
@@ -232,8 +257,9 @@ class ElectroSApi:
     async def stop_charging(self) -> bool:
         """Stop charging."""
         try:
-            self._cookies = None
-            await self._login_session()
+            if not self._local:
+                self._cookies = None
+                await self._login_session()
             await self._ws_communicate(f"site {self._login}\nstop")
             _LOGGER.info("Sent stop command")
             return True
